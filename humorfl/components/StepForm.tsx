@@ -3,16 +3,17 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import type { HumorFlavorStep } from '@/lib/types'
+import type { HumorFlavorStep, LlmModel } from '@/lib/types'
 
 interface StepFormProps {
   flavorId: number
   step?: HumorFlavorStep
   nextOrderBy?: number
+  models: LlmModel[]
   onClose: () => void
 }
 
-export function StepForm({ flavorId, step, nextOrderBy = 1, onClose }: StepFormProps) {
+export function StepForm({ flavorId, step, nextOrderBy = 1, models, onClose }: StepFormProps) {
   const router = useRouter()
   const isEdit = !!step
 
@@ -160,15 +161,17 @@ export function StepForm({ flavorId, step, nextOrderBy = 1, onClose }: StepFormP
           {/* Row 2: IDs grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
             <div>
-              <label className="label-cyber block mb-2">MODEL ID</label>
-              <input
-                type="number"
+              <label className="label-cyber block mb-2">MODEL</label>
+              <select
                 value={modelId}
-                onChange={(e) => setModelId(parseInt(e.target.value) || 1)}
-                style={inputStyle}
-                min={1}
+                onChange={(e) => setModelId(parseInt(e.target.value))}
+                style={{ ...inputStyle, cursor: 'pointer' }}
                 required
-              />
+              >
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="label-cyber block mb-2">INPUT TYPE</label>

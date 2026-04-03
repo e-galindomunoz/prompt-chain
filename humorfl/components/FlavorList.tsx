@@ -15,6 +15,12 @@ interface FlavorListProps {
 
 export function FlavorList({ flavors }: FlavorListProps) {
   const [showNew, setShowNew] = useState(false)
+  const [search, setSearch] = useState('')
+
+  const filtered = flavors.filter((f) => {
+    const q = search.toLowerCase()
+    return f.slug.toLowerCase().includes(q) || (f.description ?? '').toLowerCase().includes(q)
+  })
 
   return (
     <div>
@@ -24,7 +30,7 @@ export function FlavorList({ flavors }: FlavorListProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '24px',
+          marginBottom: '16px',
         }}
       >
         <div>
@@ -43,6 +49,17 @@ export function FlavorList({ flavors }: FlavorListProps) {
         </button>
       </div>
 
+      {/* Search */}
+      <div style={{ marginBottom: '20px' }}>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="input-cyber"
+          placeholder="Search flavors..."
+        />
+      </div>
+
       {/* Grid */}
       {flavors.length === 0 ? (
         <div
@@ -52,9 +69,17 @@ export function FlavorList({ flavors }: FlavorListProps) {
           <p className="label-cyber" style={{ marginBottom: '8px' }}>NO FLAVORS YET</p>
           <p style={{ fontSize: '13px' }}>Create your first humor flavor to get started.</p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div
+          className="cyber-card"
+          style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}
+        >
+          <p className="label-cyber" style={{ marginBottom: '8px' }}>NO RESULTS</p>
+          <p style={{ fontSize: '13px' }}>No flavors match &quot;{search}&quot;.</p>
+        </div>
       ) : (
         <div style={{ display: 'grid', gap: '12px' }}>
-          {flavors.map((flavor) => (
+          {filtered.map((flavor) => (
             <FlavorCard
               key={flavor.id}
               flavor={flavor}

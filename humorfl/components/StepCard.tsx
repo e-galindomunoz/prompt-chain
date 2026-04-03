@@ -4,15 +4,17 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { StepForm } from './StepForm'
-import type { HumorFlavorStep } from '@/lib/types'
+import type { HumorFlavorStep, LlmModel } from '@/lib/types'
 
 interface StepCardProps {
   step: HumorFlavorStep
   steps: HumorFlavorStep[]
   flavorId: number
+  models: LlmModel[]
 }
 
-export function StepCard({ step, steps, flavorId }: StepCardProps) {
+export function StepCard({ step, steps, flavorId, models }: StepCardProps) {
+  const modelName = models.find((m) => m.id === step.llm_model_id)?.name ?? `model:${step.llm_model_id}`
   const router = useRouter()
   const [showEdit, setShowEdit] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -82,7 +84,7 @@ export function StepCard({ step, steps, flavorId }: StepCardProps) {
                 color: 'var(--text-muted)',
               }}
             >
-              model:{step.llm_model_id}
+              {modelName}
             </span>
             {step.llm_temperature !== null && (
               <span
@@ -223,6 +225,7 @@ export function StepCard({ step, steps, flavorId }: StepCardProps) {
         <StepForm
           flavorId={flavorId}
           step={step}
+          models={models}
           onClose={() => setShowEdit(false)}
         />
       )}

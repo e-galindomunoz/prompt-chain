@@ -20,6 +20,11 @@ export interface HumorFlavorStep {
   description: string | null
 }
 
+export interface LlmModel {
+  id: number
+  name: string
+}
+
 export interface Profile {
   id: string
   email: string | null

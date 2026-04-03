@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface Flavor {
@@ -28,11 +29,31 @@ interface CaptionsViewProps {
 
 export function CaptionsView({ flavors, selectedFlavorId, captions }: CaptionsViewProps) {
   const router = useRouter()
+  const [flavorSearch, setFlavorSearch] = useState('')
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  function handleFlavorChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const val = e.target.value
-    if (val) {
-      router.push(`/dashboard/captions?flavor=${val}`)
+  const selectedFlavor = flavors.find((f) => f.id === selectedFlavorId)
+  const filteredFlavors = flavors.filter((f) =>
+    f.slug.toLowerCase().includes(flavorSearch.toLowerCase()) ||
+    (f.description ?? '').toLowerCase().includes(flavorSearch.toLowerCase())
+  )
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  function selectFlavor(id: number | null) {
+    setDropdownOpen(false)
+    setFlavorSearch('')
+    if (id) {
+      router.push(`/dashboard/captions?flavor=${id}`)
     } else {
       router.push('/dashboard/captions')
     }
@@ -56,19 +77,101 @@ export function CaptionsView({ flavors, selectedFlavorId, captions }: CaptionsVi
       {/* Flavor selector */}
       <div style={{ marginBottom: '24px', maxWidth: '360px' }}>
         <label className="label-cyber block mb-2">SELECT FLAVOR</label>
-        <select
-          value={selectedFlavorId ?? ''}
-          onChange={handleFlavorChange}
-          className="input-cyber"
-          style={{ cursor: 'pointer' }}
-        >
-          <option value="">— Choose a flavor —</option>
-          {flavors.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.slug}{f.description ? ` — ${f.description.slice(0, 40)}` : ''}
-            </option>
-          ))}
-        </select>
+        <div ref={dropdownRef} style={{ position: 'relative' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              border: dropdownOpen ? '1px solid var(--neon-cyan)' : '1px solid var(--border-subtle)',
+              borderRadius: '6px',
+              background: 'var(--bg-card)',
+              transition: 'border-color 0.15s ease',
+              boxShadow: dropdownOpen ? '0 0 0 1px rgba(0,255,255,0.15)' : 'none',
+            }}
+          >
+            <input
+              type="text"
+              value={dropdownOpen ? flavorSearch : (selectedFlavor?.slug ?? '')}
+              onChange={(e) => setFlavorSearch(e.target.value)}
+              onFocus={() => { setFlavorSearch(''); setDropdownOpen(true) }}
+              placeholder="— Search flavor —"
+              className="input-cyber"
+              style={{ border: 'none', boxShadow: 'none', flex: 1, background: 'transparent', outline: 'none' }}
+            />
+            {selectedFlavorId && !dropdownOpen && (
+              <button
+                onClick={() => selectFlavor(null)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-muted)', fontSize: '14px', padding: '0 10px', lineHeight: 1, flexShrink: 0,
+                }}
+                title="Clear"
+              >
+                ×
+              </button>
+            )}
+            <span style={{ color: 'var(--text-muted)', fontSize: '10px', padding: '0 10px', flexShrink: 0, userSelect: 'none' }}>
+              {dropdownOpen ? '▲' : '▼'}
+            </span>
+          </div>
+
+          {dropdownOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                left: 0,
+                right: 0,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--neon-cyan)',
+                borderRadius: '6px',
+                zIndex: 50,
+                maxHeight: '240px',
+                overflowY: 'auto',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              }}
+            >
+              {filteredFlavors.length === 0 ? (
+                <p style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-geist-mono, monospace)' }}>
+                  No matches
+                </p>
+              ) : (
+                filteredFlavors.map((f) => {
+                  const isActive = f.id === selectedFlavorId
+                  return (
+                    <button
+                      key={f.id}
+                      onMouseDown={(e) => { e.preventDefault(); selectFlavor(f.id) }}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '10px 14px',
+                        background: isActive ? 'rgba(0,255,255,0.08)' : 'transparent',
+                        border: 'none',
+                        borderBottom: '1px solid var(--border-subtle)',
+                        cursor: 'pointer',
+                        color: isActive ? 'var(--neon-cyan)' : 'var(--text-primary)',
+                        fontSize: '13px',
+                        fontFamily: 'var(--font-geist-mono, monospace)',
+                        transition: 'background 0.1s ease',
+                      }}
+                      onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)' }}
+                      onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+                    >
+                      <span>{f.slug}</span>
+                      {f.description && (
+                        <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--text-muted)', opacity: 0.7 }}>
+                          — {f.description.slice(0, 40)}{f.description.length > 40 ? '…' : ''}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Results */}

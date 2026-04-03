@@ -5,14 +5,15 @@ import Link from 'next/link'
 import { StepCard } from './StepCard'
 import { StepForm } from './StepForm'
 import { FlavorForm } from './FlavorForm'
-import type { HumorFlavor, HumorFlavorStep } from '@/lib/types'
+import type { HumorFlavor, HumorFlavorStep, LlmModel } from '@/lib/types'
 
 interface FlavorDetailProps {
   flavor: HumorFlavor
   steps: HumorFlavorStep[]
+  models: LlmModel[]
 }
 
-export function FlavorDetail({ flavor, steps }: FlavorDetailProps) {
+export function FlavorDetail({ flavor, steps, models }: FlavorDetailProps) {
   const [showAddStep, setShowAddStep] = useState(false)
   const [showEditFlavor, setShowEditFlavor] = useState(false)
 
@@ -101,7 +102,7 @@ export function FlavorDetail({ flavor, steps }: FlavorDetailProps) {
       ) : (
         <div style={{ display: 'grid', gap: '10px' }}>
           {sortedSteps.map((step) => (
-            <StepCard key={step.id} step={step} steps={steps} flavorId={flavor.id} />
+            <StepCard key={step.id} step={step} steps={steps} flavorId={flavor.id} models={models} />
           ))}
         </div>
       )}
@@ -110,6 +111,7 @@ export function FlavorDetail({ flavor, steps }: FlavorDetailProps) {
         <StepForm
           flavorId={flavor.id}
           nextOrderBy={nextOrderBy}
+          models={models}
           onClose={() => setShowAddStep(false)}
         />
       )}
