@@ -25,14 +25,18 @@ interface CaptionsViewProps {
   flavors: Flavor[]
   selectedFlavorId: number | null
   captions: CaptionRow[]
+  currentPage: number
+  totalCaptions: number
+  pageSize: number
 }
 
-export function CaptionsView({ flavors, selectedFlavorId, captions }: CaptionsViewProps) {
+export function CaptionsView({ flavors, selectedFlavorId, captions, currentPage, totalCaptions, pageSize }: CaptionsViewProps) {
   const router = useRouter()
   const [flavorSearch, setFlavorSearch] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  const totalPages = Math.ceil(totalCaptions / pageSize)
   const selectedFlavor = flavors.find((f) => f.id === selectedFlavorId)
   const filteredFlavors = flavors.filter((f) =>
     f.slug.toLowerCase().includes(flavorSearch.toLowerCase()) ||
@@ -198,7 +202,7 @@ export function CaptionsView({ flavors, selectedFlavorId, captions }: CaptionsVi
       {captions.length > 0 && (
         <div>
           <p className="label-cyber" style={{ marginBottom: '12px', fontSize: '11px', opacity: 0.6 }}>
-            {captions.length} CAPTION{captions.length !== 1 ? 'S' : ''} FOUND
+            {totalCaptions} CAPTION{totalCaptions !== 1 ? 'S' : ''} — PAGE {currentPage} OF {totalPages}
           </p>
           <div style={{ display: 'grid', gap: '12px' }}>
             {captions.map((caption) => (
@@ -283,6 +287,40 @@ export function CaptionsView({ flavors, selectedFlavorId, captions }: CaptionsVi
               </div>
             ))}
           </div>
+
+          {totalPages > 1 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: '20px',
+              }}
+            >
+              <button
+                onClick={() => router.push(`/dashboard/captions?flavor=${selectedFlavorId}&page=${currentPage - 1}`)}
+                disabled={currentPage <= 1}
+                className="btn-solid-cyan"
+                style={{ opacity: currentPage <= 1 ? 0.4 : 1, cursor: currentPage <= 1 ? 'not-allowed' : 'pointer' }}
+              >
+                ← PREV
+              </button>
+              <span
+                className="label-cyber"
+                style={{ fontSize: '12px', color: 'var(--text-muted)', letterSpacing: '0.1em' }}
+              >
+                PAGE {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => router.push(`/dashboard/captions?flavor=${selectedFlavorId}&page=${currentPage + 1}`)}
+                disabled={currentPage >= totalPages}
+                className="btn-solid-cyan"
+                style={{ opacity: currentPage >= totalPages ? 0.4 : 1, cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer' }}
+              >
+                NEXT →
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -13,14 +13,20 @@ interface FlavorListProps {
   flavors: FlavorWithCount[]
 }
 
+const PAGE_SIZE = 10
+
 export function FlavorList({ flavors }: FlavorListProps) {
   const [showNew, setShowNew] = useState(false)
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
 
   const filtered = flavors.filter((f) => {
     const q = search.toLowerCase()
     return f.slug.toLowerCase().includes(q) || (f.description ?? '').toLowerCase().includes(q)
   })
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
   return (
     <div>
@@ -54,7 +60,7 @@ export function FlavorList({ flavors }: FlavorListProps) {
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(0) }}
           className="input-cyber"
           placeholder="Search flavors..."
         />
@@ -78,15 +84,51 @@ export function FlavorList({ flavors }: FlavorListProps) {
           <p style={{ fontSize: '13px' }}>No flavors match &quot;{search}&quot;.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: '12px' }}>
-          {filtered.map((flavor) => (
-            <FlavorCard
-              key={flavor.id}
-              flavor={flavor}
-              stepCount={flavor.step_count}
-            />
-          ))}
-        </div>
+        <>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {paginated.map((flavor) => (
+              <FlavorCard
+                key={flavor.id}
+                flavor={flavor}
+                stepCount={flavor.step_count}
+              />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: '20px',
+              }}
+            >
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="btn-solid-cyan"
+                style={{ opacity: page === 0 ? 0.4 : 1, cursor: page === 0 ? 'not-allowed' : 'pointer' }}
+              >
+                ← PREV
+              </button>
+              <span
+                className="label-cyber"
+                style={{ fontSize: '12px', color: 'var(--text-muted)', letterSpacing: '0.1em' }}
+              >
+                PAGE {page + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page === totalPages - 1}
+                className="btn-solid-cyan"
+                style={{ opacity: page === totalPages - 1 ? 0.4 : 1, cursor: page === totalPages - 1 ? 'not-allowed' : 'pointer' }}
+              >
+                NEXT →
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {showNew && <FlavorForm onClose={() => setShowNew(false)} />}
