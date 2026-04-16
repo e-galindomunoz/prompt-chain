@@ -18,25 +18,36 @@ export function FlavorCard({ flavor, stepCount }: FlavorCardProps) {
   const [deleting, setDeleting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false)
+  const [duplicateName, setDuplicateName] = useState('')
+  const [duplicateError, setDuplicateError] = useState<string | null>(null)
+
+  function openDuplicateModal() {
+    setDuplicateName(`${flavor.slug}-copy`)
+    setDuplicateError(null)
+    setShowDuplicateModal(true)
+  }
 
   async function handleDuplicate() {
+    setDuplicateError(null)
     setDuplicating(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const userId = user!.id
 
-    // Create the new flavor with a -copy suffix (append number if slug taken)
-    let newSlug = `${flavor.slug}-copy`
-    let attempt = 1
-    while (true) {
-      const { data: existing } = await supabase
-        .from('humor_flavors')
-        .select('id')
-        .eq('slug', newSlug)
-        .maybeSingle()
-      if (!existing) break
-      attempt++
-      newSlug = `${flavor.slug}-copy-${attempt}`
+    const newSlug = duplicateName
+
+    // Check if slug is already taken
+    const { data: existing } = await supabase
+      .from('humor_flavors')
+      .select('id')
+      .eq('slug', newSlug)
+      .maybeSingle()
+
+    if (existing) {
+      setDuplicateError(`The name "${newSlug}" is already taken. Choose a different name.`)
+      setDuplicating(false)
+      return
     }
 
     const { data: newFlavor, error: flavorError } = await supabase
@@ -51,6 +62,7 @@ export function FlavorCard({ flavor, stepCount }: FlavorCardProps) {
       .single()
 
     if (flavorError || !newFlavor) {
+      setDuplicateError(flavorError?.message ?? 'Failed to duplicate flavor.')
       setDuplicating(false)
       return
     }
@@ -74,6 +86,7 @@ export function FlavorCard({ flavor, stepCount }: FlavorCardProps) {
     }
 
     setDuplicating(false)
+    setShowDuplicateModal(false)
     router.refresh()
   }
 
@@ -156,12 +169,11 @@ export function FlavorCard({ flavor, stepCount }: FlavorCardProps) {
             EDIT
           </button>
           <button
-            onClick={handleDuplicate}
-            disabled={duplicating}
+            onClick={openDuplicateModal}
             className="btn-cyber"
-            style={{ fontSize: '11px', padding: '6px 14px', borderColor: 'var(--neon-purple)', color: 'var(--neon-purple)', opacity: duplicating ? 0.6 : 1 }}
+            style={{ fontSize: '11px', padding: '6px 14px', borderColor: 'var(--neon-purple)', color: 'var(--neon-purple)' }}
           >
-            {duplicating ? 'DUPLICATING...' : 'DUPLICATE'}
+            DUPLICATE
           </button>
           {confirmDelete ? (
             <button
@@ -195,6 +207,99 @@ export function FlavorCard({ flavor, stepCount }: FlavorCardProps) {
 
       {showEdit && (
         <FlavorForm flavor={flavor} onClose={() => setShowEdit(false)} />
+      )}
+
+      {showDuplicateModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(5,10,20,0.85)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !duplicating) setShowDuplicateModal(false)
+          }}
+        >
+          <div className="cyber-card" style={{ width: '100%', maxWidth: '480px', padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 className="label-cyber" style={{ color: 'var(--neon-purple)', fontSize: '14px', letterSpacing: '0.12em' }}>
+                DUPLICATE FLAVOR
+              </h2>
+              <button
+                onClick={() => setShowDuplicateModal(false)}
+                disabled={duplicating}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="label-cyber block mb-2">NEW FLAVOR NAME</label>
+                <input
+                  type="text"
+                  value={duplicateName}
+                  onChange={(e) => {
+                    setDuplicateName(e.target.value.toLowerCase().replace(/\s+/g, '-'))
+                    setDuplicateError(null)
+                  }}
+                  className="input-cyber"
+                  placeholder="my-new-flavor"
+                  required
+                  pattern="[a-z0-9-]+"
+                  title="Lowercase letters, numbers, and hyphens only"
+                  disabled={duplicating}
+                  autoFocus
+                />
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'var(--font-geist-mono, monospace)' }}>
+                  Unique identifier — lowercase, hyphens only
+                </p>
+              </div>
+
+              {duplicateError && (
+                <div
+                  style={{
+                    border: '1px solid var(--neon-pink)',
+                    borderRadius: '4px',
+                    padding: '10px 14px',
+                    color: 'var(--neon-pink)',
+                    fontSize: '12px',
+                    fontFamily: 'var(--font-geist-mono, monospace)',
+                    background: 'rgba(255,0,128,0.05)',
+                  }}
+                >
+                  ⚠ {duplicateError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
+                <button
+                  onClick={handleDuplicate}
+                  disabled={duplicating || !duplicateName}
+                  className="btn-solid-cyan"
+                  style={{ opacity: duplicating || !duplicateName ? 0.7 : 1, borderColor: 'var(--neon-purple)', color: 'var(--neon-purple)' }}
+                >
+                  {duplicating ? 'DUPLICATING...' : 'CREATE DUPLICATE'}
+                </button>
+                <button
+                  onClick={() => setShowDuplicateModal(false)}
+                  disabled={duplicating}
+                  className="btn-cyber"
+                  style={{ borderColor: 'var(--text-muted)', color: 'var(--text-muted)' }}
+                >
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )
